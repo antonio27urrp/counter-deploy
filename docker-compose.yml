@@ -1,22 +1,42 @@
+
 services:
   app:
-    build:
-      context: ./
-      dockerfile: Dockerfile
+    
+    image: counter-app:latest
     env_file:
       - ./backend/.env
     ports:
       - "80:8000"
+    networks:
+      - counter-net
     depends_on:
       - redis
-    restart: always
+    deploy:
+      replicas: 4  
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 2
+        delay: 10s
 
   redis:
     image: redis:7-alpine
+    # Команда для сохранения данных (persistence)
     command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    restart: always
+    networks:
+      - counter-net
+    deploy:
+      replicas: 2  # Условие задачи: увеличить количество БД
+      restart_policy:
+        condition: on-failure
+
+networks:
+  counter-net:
+    
+    driver: overlay
+    attachable: true
 
 volumes:
   redis_data:
